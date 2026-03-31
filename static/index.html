@@ -1,0 +1,905 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Cleaning OpenEnv</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #0f1117;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+
+        /* ── Header ── */
+        .header {
+            background: linear-gradient(135deg, #1a1f2e, #2d3561);
+            padding: 30px 40px;
+            border-bottom: 2px solid #3d4f7c;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .header-icon { font-size: 48px; }
+        .header h1 { 
+            font-size: 28px; 
+            color: #7eb8f7;
+            margin-bottom: 6px;
+        }
+        .header p { 
+            color: #8892b0; 
+            font-size: 14px;
+        }
+        .badge {
+            background: #2ecc71;
+            color: #000;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        /* ── Layout ── */
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            padding: 30px 20px;
+        }
+
+        /* ── Stats Bar ── */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: #1a1f2e;
+            border: 1px solid #2d3561;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #7eb8f7;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #8892b0;
+            margin-top: 4px;
+        }
+
+        /* ── Tasks Grid ── */
+        .section-title {
+            font-size: 18px;
+            color: #7eb8f7;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #2d3561;
+        }
+        .tasks-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .task-card {
+            background: #1a1f2e;
+            border: 1px solid #2d3561;
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .task-card:hover {
+            border-color: #7eb8f7;
+            transform: translateY(-2px);
+        }
+        .task-card.active {
+            border-color: #7eb8f7;
+            background: #1e2a3a;
+        }
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .task-name {
+            font-size: 14px;
+            font-weight: bold;
+            color: #e0e0e0;
+        }
+        .difficulty {
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .easy { background: #1a472a; color: #2ecc71; }
+        .medium { background: #472a1a; color: #f39c12; }
+        .hard { background: #471a1a; color: #e74c3c; }
+        .task-desc {
+            font-size: 12px;
+            color: #8892b0;
+            line-height: 1.5;
+        }
+        .task-score {
+            margin-top: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .score-bar-bg {
+            flex: 1;
+            height: 6px;
+            background: #2d3561;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .score-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+            transition: width 0.5s;
+        }
+        .score-text {
+            font-size: 12px;
+            color: #7eb8f7;
+            min-width: 40px;
+        }
+
+        /* ── Demo Section ── */
+        .demo-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .panel {
+            background: #1a1f2e;
+            border: 1px solid #2d3561;
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .panel-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #7eb8f7;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* ── Dataset Table ── */
+        .table-wrapper {
+            overflow-x: auto;
+            max-height: 240px;
+            overflow-y: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        th {
+            background: #2d3561;
+            color: #7eb8f7;
+            padding: 8px 12px;
+            text-align: left;
+            position: sticky;
+            top: 0;
+        }
+        td {
+            padding: 6px 12px;
+            border-bottom: 1px solid #1e2438;
+            color: #c0c0c0;
+        }
+        tr:hover td { background: #1e2438; }
+        .null-cell { color: #e74c3c; font-style: italic; }
+        .dup-row td { background: #2a1a1a !important; }
+
+        /* ── Actions ── */
+        .actions-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .action-btn {
+            background: #1e2438;
+            border: 1px solid #2d3561;
+            border-radius: 8px;
+            padding: 10px 16px;
+            color: #e0e0e0;
+            cursor: pointer;
+            font-size: 13px;
+            text-align: left;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .action-btn:hover:not(:disabled) {
+            border-color: #7eb8f7;
+            background: #253050;
+        }
+        .action-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .action-btn.used {
+            border-color: #2ecc71;
+            color: #2ecc71;
+        }
+        .action-tag {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: #2d3561;
+            color: #8892b0;
+        }
+
+        /* ── Reward Display ── */
+        .reward-display {
+            text-align: center;
+            padding: 20px;
+        }
+        .reward-circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 4px solid #2d3561;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            background: #0f1117;
+            transition: all 0.3s;
+        }
+        .reward-number {
+            font-size: 28px;
+            font-weight: bold;
+            color: #7eb8f7;
+        }
+        .reward-label {
+            font-size: 10px;
+            color: #8892b0;
+        }
+        .reward-components {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            text-align: left;
+        }
+        .component-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+        .component-name {
+            width: 130px;
+            color: #8892b0;
+        }
+        .component-bar-bg {
+            flex: 1;
+            height: 8px;
+            background: #2d3561;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .component-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s;
+        }
+        .component-val {
+            width: 40px;
+            text-align: right;
+            color: #7eb8f7;
+        }
+
+        /* ── Message Log ── */
+        .message-log {
+            background: #0f1117;
+            border: 1px solid #2d3561;
+            border-radius: 8px;
+            padding: 12px;
+            max-height: 160px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .log-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid #1a1f2e;
+            color: #8892b0;
+        }
+        .log-entry.success { color: #2ecc71; }
+        .log-entry.info { color: #7eb8f7; }
+        .log-entry.warning { color: #f39c12; }
+
+        /* ── Control Buttons ── */
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .btn {
+            padding: 10px 24px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #3d6ef7;
+            color: white;
+        }
+        .btn-primary:hover { background: #5a87ff; }
+        .btn-secondary {
+            background: #2d3561;
+            color: #e0e0e0;
+        }
+        .btn-secondary:hover { background: #3d4f7c; }
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* ── API Docs ── */
+        .api-section {
+            margin-bottom: 30px;
+        }
+        .endpoint-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .endpoint {
+            background: #1a1f2e;
+            border: 1px solid #2d3561;
+            border-radius: 8px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 13px;
+        }
+        .method {
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            min-width: 45px;
+            text-align: center;
+        }
+        .get { background: #1a472a; color: #2ecc71; }
+        .post { background: #472a1a; color: #f39c12; }
+        .endpoint-path { 
+            color: #7eb8f7; 
+            font-family: monospace;
+            flex: 1;
+        }
+        .endpoint-desc { 
+            color: #8892b0; 
+            font-size: 12px;
+        }
+        .endpoint a {
+            color: #7eb8f7;
+            text-decoration: none;
+        }
+
+        /* ── Status indicator ── */
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #2ecc71;
+            display: inline-block;
+            margin-right: 6px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* ── Loading ── */
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #2d3561;
+            border-top-color: #7eb8f7;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .done-banner {
+            background: #1a472a;
+            border: 1px solid #2ecc71;
+            border-radius: 8px;
+            padding: 12px 20px;
+            color: #2ecc71;
+            text-align: center;
+            font-weight: bold;
+            display: none;
+            margin-top: 12px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+    <div class="header-icon">🧹</div>
+    <div>
+        <h1>Data Cleaning OpenEnv 
+            <span class="badge">● LIVE</span>
+        </h1>
+        <p>An OpenEnv-compliant environment where AI agents learn to clean messy real-world datasets</p>
+    </div>
+</div>
+
+<div class="container">
+
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+        <div class="stat-card">
+            <div class="stat-value">3</div>
+            <div class="stat-label">Tasks Available</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">6</div>
+            <div class="stat-label">Cleaning Operations</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="avg-score">0.83</div>
+            <div class="stat-label">Baseline Avg Score</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value"><span class="status-dot"></span>OK</div>
+            <div class="stat-label">Environment Status</div>
+        </div>
+    </div>
+
+    <!-- Tasks -->
+    <div class="section-title">📋 Available Tasks</div>
+    <div class="tasks-grid">
+        <div class="task-card active" onclick="selectTask('easy_dedup_rename')" id="card-easy">
+            <div class="task-header">
+                <div class="task-name">Deduplicate & Rename</div>
+                <div class="difficulty easy">EASY</div>
+            </div>
+            <div class="task-desc">
+                Remove duplicate rows and rename columns to snake_case in an employee dataset.
+            </div>
+            <div class="task-score">
+                <div class="score-bar-bg">
+                    <div class="score-bar-fill" style="width: 100%"></div>
+                </div>
+                <div class="score-text">1.00</div>
+            </div>
+        </div>
+        <div class="task-card" onclick="selectTask('medium_missing_dtype')" id="card-medium">
+            <div class="task-header">
+                <div class="task-name">Missing Values & Types</div>
+                <div class="difficulty medium">MEDIUM</div>
+            </div>
+            <div class="task-desc">
+                Fill missing values using correct strategies and fix wrong data types in a customer dataset.
+            </div>
+            <div class="task-score">
+                <div class="score-bar-bg">
+                    <div class="score-bar-fill" style="width: 66.4%"></div>
+                </div>
+                <div class="score-text">0.66</div>
+            </div>
+        </div>
+        <div class="task-card" onclick="selectTask('hard_full_pipeline')" id="card-hard">
+            <div class="task-header">
+                <div class="task-name">Full Pipeline</div>
+                <div class="difficulty hard">HARD</div>
+            </div>
+            <div class="task-desc">
+                Complete cleaning pipeline: duplicates + missing + types + outliers + schema validation.
+            </div>
+            <div class="task-score">
+                <div class="score-bar-bg">
+                    <div class="score-bar-fill" style="width: 83.9%"></div>
+                </div>
+                <div class="score-text">0.84</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Demo Section -->
+    <div class="section-title">🎮 Live Demo — Try It Yourself</div>
+    <div class="controls">
+        <button class="btn btn-primary" onclick="resetEnv()" id="reset-btn">
+            🔄 Reset Environment
+        </button>
+        <button class="btn btn-secondary" onclick="resetAll()">
+            ⟳ Start Over
+        </button>
+        <span id="task-label" style="align-self:center; color:#8892b0; font-size:13px;">
+            Task: easy_dedup_rename
+        </span>
+    </div>
+
+    <div class="demo-section">
+
+        <!-- Left: Dataset + Actions -->
+        <div style="display:flex; flex-direction:column; gap:16px;">
+
+            <!-- Dataset Table -->
+            <div class="panel">
+                <div class="panel-title">
+                    📊 Current Dataset 
+                    <span id="shape-badge" style="font-size:11px; color:#8892b0; font-weight:normal;">
+                        — reset to load
+                    </span>
+                </div>
+                <div class="table-wrapper" id="table-wrapper">
+                    <div style="color:#8892b0; font-size:13px; padding:20px; text-align:center;">
+                        Click "Reset Environment" to load dirty dataset
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="panel">
+                <div class="panel-title">⚡ Available Actions</div>
+                <div class="actions-list" id="actions-list">
+                    <div style="color:#8892b0; font-size:13px;">Reset first to enable actions</div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right: Reward + Log -->
+        <div style="display:flex; flex-direction:column; gap:16px;">
+
+            <!-- Reward -->
+            <div class="panel">
+                <div class="panel-title">🏆 Reward Score</div>
+                <div class="reward-display">
+                    <div class="reward-circle" id="reward-circle">
+                        <div class="reward-number" id="reward-number">—</div>
+                        <div class="reward-label">SCORE</div>
+                    </div>
+                    <div class="reward-components" id="reward-components">
+                        <div style="color:#8892b0; font-size:12px; text-align:center;">
+                            Reset to see reward breakdown
+                        </div>
+                    </div>
+                </div>
+                <div class="done-banner" id="done-banner">
+                    ✅ Episode Complete!
+                </div>
+            </div>
+
+            <!-- Log -->
+            <div class="panel">
+                <div class="panel-title">📝 Action Log</div>
+                <div class="message-log" id="message-log">
+                    <div class="log-entry info">Waiting for reset...</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- API Endpoints -->
+    <div class="api-section">
+        <div class="section-title">🔌 API Endpoints</div>
+        <div class="endpoint-list">
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="endpoint-path">/health</span>
+                <span class="endpoint-desc">Health check — returns status OK</span>
+                <a href="/health" target="_blank">Try →</a>
+            </div>
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="endpoint-path">/tasks</span>
+                <span class="endpoint-desc">List all available tasks</span>
+                <a href="/tasks" target="_blank">Try →</a>
+            </div>
+            <div class="endpoint">
+                <span class="method post">POST</span>
+                <span class="endpoint-path">/reset/{task_id}</span>
+                <span class="endpoint-desc">Reset environment, get initial observation</span>
+            </div>
+            <div class="endpoint">
+                <span class="method post">POST</span>
+                <span class="endpoint-path">/step/{task_id}</span>
+                <span class="endpoint-desc">Take action, get reward + next observation</span>
+            </div>
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="endpoint-path">/state/{task_id}</span>
+                <span class="endpoint-desc">Get current environment state</span>
+            </div>
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="endpoint-path">/validate</span>
+                <span class="endpoint-desc">OpenEnv spec validation</span>
+                <a href="/validate" target="_blank">Try →</a>
+            </div>
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="endpoint-path">/docs</span>
+                <span class="endpoint-desc">Interactive API documentation</span>
+                <a href="/docs" target="_blank">Try →</a>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const BASE = window.location.origin;
+    let currentTask = 'easy_dedup_rename';
+    let episodeDone = false;
+    let stepCount = 0;
+    let usedActions = new Set();
+
+    const TASK_OPERATIONS = {
+        'easy_dedup_rename':    ['remove_duplicates', 'rename_columns', 'finish'],
+        'medium_missing_dtype': ['fill_missing', 'fix_dtype', 'finish'],
+        'hard_full_pipeline':   ['remove_duplicates', 'fill_missing', 'fix_dtype', 'remove_outliers', 'validate_schema', 'finish']
+    };
+
+    const ACTION_PARAMS = {
+        'remove_duplicates': {},
+        'rename_columns':    {},
+        'fill_missing':      {strategy: 'mean'},
+        'fix_dtype':         {dtype: 'auto'},
+        'remove_outliers':   {method: 'iqr'},
+        'validate_schema':   {},
+        'finish':            {}
+    };
+
+    const ACTION_DESC = {
+        'remove_duplicates': 'Delete repeated rows',
+        'rename_columns':    'Convert to snake_case',
+        'fill_missing':      'Fill empty cells (mean)',
+        'fix_dtype':         'Fix wrong data types',
+        'remove_outliers':   'Remove extreme values',
+        'validate_schema':   'Check column names',
+        'finish':            'Submit cleaned dataset'
+    };
+
+    const COMPONENT_COLORS = {
+        'duplicate_score': '#3498db',
+        'missing_score':   '#9b59b6',
+        'dtype_score':     '#e67e22',
+        'outlier_score':   '#e74c3c',
+        'schema_score':    '#2ecc71',
+    };
+
+    function selectTask(taskId) {
+        currentTask = taskId;
+        document.querySelectorAll('.task-card').forEach(c => c.classList.remove('active'));
+        const map = {
+            'easy_dedup_rename': 'card-easy',
+            'medium_missing_dtype': 'card-medium',
+            'hard_full_pipeline': 'card-hard'
+        };
+        document.getElementById(map[taskId]).classList.add('active');
+        document.getElementById('task-label').textContent = 'Task: ' + taskId;
+        resetAll();
+        addLog('Switched to task: ' + taskId, 'info');
+    }
+
+    function resetAll() {
+        episodeDone = false;
+        stepCount = 0;
+        usedActions = new Set();
+        document.getElementById('reward-number').textContent = '—';
+        document.getElementById('reward-circle').style.borderColor = '#2d3561';
+        document.getElementById('reward-components').innerHTML = 
+            '<div style="color:#8892b0;font-size:12px;text-align:center;">Reset to see reward breakdown</div>';
+        document.getElementById('table-wrapper').innerHTML = 
+            '<div style="color:#8892b0;font-size:13px;padding:20px;text-align:center;">Click "Reset Environment" to load dirty dataset</div>';
+        document.getElementById('actions-list').innerHTML = 
+            '<div style="color:#8892b0;font-size:13px;">Reset first to enable actions</div>';
+        document.getElementById('shape-badge').textContent = '— reset to load';
+        document.getElementById('done-banner').style.display = 'none';
+        document.getElementById('message-log').innerHTML = 
+            '<div class="log-entry info">Ready — click Reset Environment</div>';
+    }
+
+    async function resetEnv() {
+        const btn = document.getElementById('reset-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="loading"></span> Resetting...';
+        episodeDone = false;
+        stepCount = 0;
+        usedActions = new Set();
+        document.getElementById('done-banner').style.display = 'none';
+
+        try {
+            const res = await fetch(BASE + '/reset/' + currentTask, {method: 'POST'});
+            const data = await res.json();
+            const obs = data.observation;
+
+            updateTable(obs.sample_rows, obs.columns, obs.duplicate_count, obs.missing_values);
+            updateActions(obs.available_operations, false);
+            document.getElementById('shape-badge').textContent = 
+                obs.shape[0] + ' rows × ' + obs.shape[1] + ' cols | ' + 
+                obs.duplicate_count + ' dups | ' + 
+                Object.values(obs.missing_values).reduce((a,b)=>a+b,0) + ' missing';
+            document.getElementById('reward-number').textContent = '0.00';
+            document.getElementById('reward-circle').style.borderColor = '#2d3561';
+            addLog('✅ Environment reset! ' + obs.message, 'success');
+            addLog('📋 ' + obs.task_description.substring(0,80) + '...', 'info');
+        } catch(e) {
+            addLog('❌ Reset failed: ' + e.message, 'warning');
+        }
+
+        btn.disabled = false;
+        btn.innerHTML = '🔄 Reset Environment';
+    }
+
+    async function takeAction(operation) {
+        if (episodeDone) {
+            addLog('⚠️ Episode done — reset first', 'warning');
+            return;
+        }
+
+        stepCount++;
+        const params = ACTION_PARAMS[operation] || {};
+        addLog('[Step ' + stepCount + '] → ' + operation + ' ' + JSON.stringify(params), 'info');
+
+        // Disable button while running
+        const btn = document.getElementById('btn-' + operation);
+        if (btn) { btn.disabled = true; btn.innerHTML = '<span class="loading"></span> Running...'; }
+
+        try {
+            const res = await fetch(BASE + '/step/' + currentTask, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({operation, parameters: params})
+            });
+            const data = await res.json();
+            const obs  = data.observation;
+            const rew  = data.reward;
+
+            // Update table
+            updateTable(obs.sample_rows, obs.columns, obs.duplicate_count, obs.missing_values);
+            document.getElementById('shape-badge').textContent = 
+                obs.shape[0] + ' rows × ' + obs.shape[1] + ' cols | ' + 
+                obs.duplicate_count + ' dups | ' + 
+                Object.values(obs.missing_values).reduce((a,b)=>a+b,0) + ' missing';
+
+            // Update reward
+            updateReward(rew);
+
+            // Log message
+            addLog('   ↳ ' + obs.message.substring(0,80), rew.total > 0.5 ? 'success' : 'info');
+            addLog('   ↳ Reward: ' + rew.total.toFixed(4), 'success');
+
+            // Mark action used
+            usedActions.add(operation);
+            if (btn) {
+                btn.classList.add('used');
+                btn.innerHTML = '✅ ' + operation;
+            }
+
+            if (data.done) {
+                episodeDone = true;
+                document.getElementById('done-banner').style.display = 'block';
+                addLog('🏁 Episode complete! Final score: ' + rew.total.toFixed(4), 'success');
+                updateActions(obs.available_operations, true);
+            }
+
+        } catch(e) {
+            addLog('❌ Action failed: ' + e.message, 'warning');
+            if (btn) { btn.disabled = false; btn.innerHTML = operation; }
+        }
+    }
+
+    function updateTable(rows, columns, dupCount, missing) {
+        if (!rows || rows.length === 0) return;
+        let html = '<table><thead><tr>';
+        columns.forEach(c => { html += '<th>' + c + '</th>'; });
+        html += '</tr></thead><tbody>';
+        rows.forEach(row => {
+            html += '<tr>';
+            columns.forEach(c => {
+                const val = row[c];
+                if (val === 'NULL' || val === null || val === undefined) {
+                    html += '<td class="null-cell">NULL</td>';
+                } else {
+                    html += '<td>' + val + '</td>';
+                }
+            });
+            html += '</tr>';
+        });
+        html += '</tbody></table>';
+        document.getElementById('table-wrapper').innerHTML = html;
+    }
+
+    function updateActions(ops, done) {
+        const list = document.getElementById('actions-list');
+        list.innerHTML = '';
+        ops.forEach(op => {
+            const btn = document.createElement('button');
+            btn.className = 'action-btn' + (usedActions.has(op) ? ' used' : '');
+            btn.id = 'btn-' + op;
+            btn.disabled = done;
+            btn.innerHTML = `
+                <span>${usedActions.has(op) ? '✅ ' : ''}${op}</span>
+                <span class="action-tag">${ACTION_DESC[op] || ''}</span>
+            `;
+            btn.onclick = () => takeAction(op);
+            list.appendChild(btn);
+        });
+    }
+
+    function updateReward(rew) {
+        const total = rew.total || 0;
+        document.getElementById('reward-number').textContent = total.toFixed(4);
+        
+        // Color circle based on score
+        let color = '#e74c3c';
+        if (total >= 0.8) color = '#2ecc71';
+        else if (total >= 0.5) color = '#f39c12';
+        document.getElementById('reward-circle').style.borderColor = color;
+
+        // Components
+        const comps = ['duplicate_score','missing_score','dtype_score','outlier_score','schema_score'];
+        let html = '';
+        comps.forEach(c => {
+            const val = rew[c] || 0;
+            if (val === 0 && !['duplicate_score','schema_score'].includes(c)) return;
+            const color = COMPONENT_COLORS[c] || '#7eb8f7';
+            html += `
+                <div class="component-row">
+                    <div class="component-name">${c.replace('_score','')}</div>
+                    <div class="component-bar-bg">
+                        <div class="component-bar-fill" 
+                             style="width:${val*100}%;background:${color}">
+                        </div>
+                    </div>
+                    <div class="component-val">${val.toFixed(2)}</div>
+                </div>
+            `;
+        });
+        document.getElementById('reward-components').innerHTML = html;
+    }
+
+    function addLog(msg, type='info') {
+        const log = document.getElementById('message-log');
+        const entry = document.createElement('div');
+        entry.className = 'log-entry ' + type;
+        entry.textContent = msg;
+        log.appendChild(entry);
+        log.scrollTop = log.scrollHeight;
+    }
+
+    // Auto ping health on load
+    fetch(BASE + '/health')
+        .then(r => r.json())
+        .then(d => addLog('🟢 Environment online — ' + d.tasks_loaded + ' tasks loaded', 'success'))
+        .catch(() => addLog('🔴 Cannot reach environment', 'warning'));
+</script>
+</body>
+</html>
