@@ -4,6 +4,9 @@ import os
 sys.path.insert(0, os.path.dirname(__file__))
 
 from fastapi import FastAPI, HTTPException
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Dict, Any
 from models import Action, StepResult, Reward
@@ -21,6 +24,10 @@ app = FastAPI(
     ),
     version="1.0.0"
 )
+
+# Serve UI
+os.makedirs("static", exist_ok=True)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.add_middleware(
     CORSMiddleware,
@@ -60,6 +67,10 @@ def get_env(task_id: str) -> DataCleaningEnv:
 # ─────────────────────────────────────────
 # ROUTES
 # ─────────────────────────────────────────
+
+@app.get("/ui")
+def ui():
+    return FileResponse("static/index.html")
 
 @app.get("/")
 def root():
