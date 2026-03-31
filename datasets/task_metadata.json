@@ -1,0 +1,53 @@
+{
+  "easy": {
+    "task_id": "easy_dedup_rename",
+    "difficulty": "easy",
+    "description": "Clean an employee dataset by: 1) Removing duplicate rows, 2) Renaming columns to snake_case format. Call finish when done.",
+    "max_steps": 10,
+    "operations_allowed": [
+      "remove_duplicates",
+      "rename_columns",
+      "finish"
+    ],
+    "scoring": {
+      "duplicate_score": 0.5,
+      "schema_score": 0.5
+    }
+  },
+  "medium": {
+    "task_id": "medium_missing_dtype",
+    "difficulty": "medium",
+    "description": "Clean a customer dataset by: 1) Filling missing values using correct strategy (mean for numeric, mode for categorical), 2) Fixing data types (age, purchases, salary must be numeric). Call finish when done.",
+    "max_steps": 15,
+    "operations_allowed": [
+      "fill_missing",
+      "fix_dtype",
+      "finish"
+    ],
+    "scoring": {
+      "missing_score": 0.5,
+      "dtype_score": 0.5
+    }
+  },
+  "hard": {
+    "task_id": "hard_full_pipeline",
+    "difficulty": "hard",
+    "description": "Clean an orders dataset by running a full pipeline: 1) Remove duplicate orders, 2) Fill missing values, 3) Fix data types, 4) Remove outliers in quantity and price columns, 5) Validate final schema. Call finish when done.",
+    "max_steps": 20,
+    "operations_allowed": [
+      "remove_duplicates",
+      "fill_missing",
+      "fix_dtype",
+      "remove_outliers",
+      "validate_schema",
+      "finish"
+    ],
+    "scoring": {
+      "duplicate_score": 0.2,
+      "missing_score": 0.2,
+      "dtype_score": 0.2,
+      "outlier_score": 0.2,
+      "schema_score": 0.2
+    }
+  }
+}
