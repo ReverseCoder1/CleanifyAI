@@ -1,0 +1,98 @@
+name: data-cleaning-openenv
+version: 1.0.0
+description: >
+  An OpenEnv-compliant environment where AI agents learn to clean
+  messy real-world datasets step by step. Tasks include duplicate
+  removal, missing value imputation, dtype fixing, outlier detection,
+  and schema validation.
+
+author: thorodin103
+tags:
+  - openenv
+  - data-cleaning
+  - real-world
+  - pandas
+  - tabular
+
+tasks:
+  - id: easy_dedup_rename
+    difficulty: easy
+    description: Remove duplicate rows and rename columns to snake_case
+    max_steps: 10
+    scoring:
+      duplicate_score: 0.5
+      schema_score: 0.5
+
+  - id: medium_missing_dtype
+    difficulty: medium
+    description: Fill missing values and fix wrong data types
+    max_steps: 15
+    scoring:
+      missing_score: 0.5
+      dtype_score: 0.5
+
+  - id: hard_full_pipeline
+    difficulty: hard
+    description: Full pipeline — duplicates, missing, dtypes, outliers, schema
+    max_steps: 20
+    scoring:
+      duplicate_score: 0.2
+      missing_score: 0.2
+      dtype_score: 0.2
+      outlier_score: 0.2
+      schema_score: 0.2
+
+observation_space:
+  task_id: string
+  step: integer
+  dataset_info: object
+  columns: list
+  shape: list
+  missing_values: object
+  dtypes: object
+  duplicate_count: integer
+  sample_rows: list
+  available_operations: list
+  task_description: string
+  message: string
+
+action_space:
+  operation:
+    type: string
+    values:
+      - remove_duplicates
+      - fill_missing
+      - fix_dtype
+      - remove_outliers
+      - rename_columns
+      - validate_schema
+      - finish
+  parameters:
+    type: object
+    description: Operation specific parameters
+
+reward_space:
+  total:
+    type: float
+    range: [0.0, 1.0]
+  components:
+    - duplicate_score
+    - missing_score
+    - dtype_score
+    - outlier_score
+    - schema_score
+    - penalty
+
+api:
+  reset: POST /reset/{task_id}
+  step: POST /step/{task_id}
+  state: GET /state/{task_id}
+  tasks: GET /tasks
+  validate: GET /validate
+  health: GET /health
+
+runtime:
+  language: python
+  version: "3.10"
+  framework: fastapi
+  port: 7860
