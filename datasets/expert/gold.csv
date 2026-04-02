@@ -1,0 +1,14 @@
+transaction_id,sales_rep,region,sale_amount,commission_pct,sale_date,units_sold,customer_rating
+2001,Alice,North,1500.0,5.0,2024-01-05,12,4
+2002,Bob,South,2200.0,7.0,2024-01-06,8,5
+2003,Charlie,East,980.0,6.0,2024-01-07,15,4
+2004,Diana,West,3100.0,8.0,2024-01-08,6,3
+2005,Alice,North,1750.0,5.0,2024-01-09,11,4
+2006,Bob,South,2200.0,7.0,2024-01-10,8,5
+2007,Charlie,East,890.0,6.0,2024-01-11,14,4
+2008,Diana,West,4100.0,6.0,2024-01-12,5,4
+2009,Diana,North,1600.0,8.0,2024-01-13,9,3
+2010,Alice,South,2900.0,5.0,2024-01-14,7,5
+2011,Charlie,East,750.0,6.0,2024-01-15,3,4
+2012,Eve,West,1100.0,7.0,2024-01-16,10,4
+2013,Charlie,North,2400.0,6.0,2024-01-17,6,3
