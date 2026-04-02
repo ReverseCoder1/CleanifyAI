@@ -24,7 +24,7 @@ from openai import OpenAI
 # ─────────────────────────────────────────
 
 API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
-API_KEY      = os.getenv("OPENAI_API_KEY") or os.getenv("HF_TOKEN") or os.getenv("API_KEY", "")
+API_KEY      = os.getenv("OPENAI_API_KEY") or os.getenv("API_KEY") or os.getenv("HF_TOKEN", "")
 MODEL_NAME   = os.getenv("MODEL_NAME", "gpt-4o-mini")
 
 MAX_STEPS   = 15
