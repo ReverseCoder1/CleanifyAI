@@ -49,27 +49,5 @@
       "outlier_score": 0.2,
       "schema_score": 0.2
     }
-  },
-  "expert": {
-    "task_id": "expert_sales_pipeline",
-    "difficulty": "expert",
-    "description": "Clean a sales dataset by running a complete expert pipeline: 1) Remove duplicate transactions, 2) Standardize region values to Title Case, 3) Fill missing values correctly, 4) Fix all data types, 5) Remove outliers in sale_amount, 6) Rename all columns to snake_case, 7) Validate final schema. This task requires correct ORDER of operations. Call finish when done.",
-    "max_steps": 25,
-    "operations_allowed": [
-      "remove_duplicates",
-      "fill_missing",
-      "fix_dtype",
-      "remove_outliers",
-      "rename_columns",
-      "validate_schema",
-      "finish"
-    ],
-    "scoring": {
-      "duplicate_score": 0.15,
-      "missing_score": 0.2,
-      "dtype_score": 0.2,
-      "outlier_score": 0.2,
-      "schema_score": 0.25
-    }
   }
 }
