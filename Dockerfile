@@ -16,6 +16,12 @@ RUN pip install --no-cache-dir \
 # Copy all project files
 COPY . .
 
+# Environment variables judges will set
+ENV API_BASE_URL=https://api.openai.com/v1
+ENV MODEL_NAME=gpt-4o-mini
+ENV HF_TOKEN=""
+ENV OPENAI_API_KEY=""
+
 # Expose port
 EXPOSE 7860
 
