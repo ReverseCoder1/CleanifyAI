@@ -1,3 +1,19 @@
+---
+title: Data Cleaning OpenEnv
+emoji: 🧹
+colorFrom: blue
+colorTo: green
+sdk: docker
+pinned: false
+license: mit
+tags:
+  - openenv
+  - data-cleaning
+  - reinforcement-learning
+  - agent
+  - real-world
+---
+
 # 🧹 Data Cleaning OpenEnv
 
 An OpenEnv-compliant environment where AI agents learn to clean
