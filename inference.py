@@ -34,7 +34,8 @@ MAX_TOKENS  = 400
 VALID_TASKS = [
     "easy_dedup_rename",
     "medium_missing_dtype",
-    "hard_full_pipeline"
+    "hard_full_pipeline",
+    "expert_sales_pipeline"
 ]
 
 SYSTEM_PROMPT = """
