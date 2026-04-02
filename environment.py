@@ -51,10 +51,9 @@ class DataCleaningEnv:
 
     def _load_datasets(self):
         mapping = {
-            "easy_dedup_rename":     "easy",
-            "medium_missing_dtype":  "medium",
-            "hard_full_pipeline":    "hard",
-            "expert_sales_pipeline": "expert"
+            "easy_dedup_rename":    "easy",
+            "medium_missing_dtype": "medium",
+            "hard_full_pipeline":   "hard"
         }
         folder = mapping.get(self.task_id, "easy")
         self.current_df = pd.read_csv(f"datasets/{folder}/dirty.csv")
@@ -220,10 +219,7 @@ class DataCleaningEnv:
                 fill_val = numeric.median()
                 self.current_df[c] = numeric.fillna(fill_val)
             elif strategy == "mode":
-                mode_vals = self.current_df[c].mode()
-                if len(mode_vals) == 0:
-                    continue
-                fill_val = mode_vals.iloc[0]
+                fill_val = self.current_df[c].mode()[0]
                 self.current_df[c] = self.current_df[c].fillna(fill_val)
             elif strategy == "ffill":
                 self.current_df[c] = self.current_df[c].ffill()
