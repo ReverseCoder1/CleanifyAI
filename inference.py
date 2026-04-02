@@ -23,9 +23,9 @@ from openai import OpenAI
 # CONFIG
 # ─────────────────────────────────────────
 
-API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
-API_KEY      = os.getenv("OPENAI_API_KEY") or os.getenv("HF_TOKEN") or os.getenv("API_KEY", "")
-MODEL_NAME   = os.getenv("MODEL_NAME", "gpt-4o-mini")
+API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
+API_KEY      = os.getenv("HF_TOKEN") or os.getenv("API_KEY", "")
+MODEL_NAME   = os.getenv("MODEL_NAME", "meta-llama/Llama-3.3-70B-Instruct")
 
 MAX_STEPS   = 15
 TEMPERATURE = 0.1
@@ -34,8 +34,7 @@ MAX_TOKENS  = 400
 VALID_TASKS = [
     "easy_dedup_rename",
     "medium_missing_dtype",
-    "hard_full_pipeline",
-    "expert_sales_pipeline"
+    "hard_full_pipeline"
 ]
 
 SYSTEM_PROMPT = """
@@ -132,7 +131,7 @@ def run_task(
 
     # Reset
     result     = env.reset()
-    obs        = result.observation.model_dump()
+    obs        = result.observation.dict()
     done       = result.done
     step       = 0
     rewards    = []
@@ -178,7 +177,7 @@ def run_task(
 
         # Step environment
         result  = env.step(action)
-        obs     = result.observation.model_dump()
+        obs     = result.observation.dict()
         done    = result.done
         reward  = result.reward.total
         rewards.append(reward)
