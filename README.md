@@ -1,19 +1,3 @@
----
-title: Data Cleaning OpenEnv
-emoji: 🧹
-colorFrom: blue
-colorTo: green
-sdk: docker
-pinned: false
-license: mit
-tags:
-  - openenv
-  - data-cleaning
-  - reinforcement-learning
-  - agent
-  - real-world
----
-
 # 🧹 Data Cleaning OpenEnv
 
 An OpenEnv-compliant environment where AI agents learn to clean
@@ -175,10 +159,10 @@ Scores produced by `meta-llama/Llama-3.3-70B-Instruct`:
 
 | Task | Score |
 |------|-------|
-| easy_dedup_rename | 1.0000 |
-| medium_missing_dtype | 0.6643 |
-| hard_full_pipeline | 0.8386 |
-| **Average** | **0.8343** |
+| easy_dedup_rename | ~0.85 |
+| medium_missing_dtype | ~0.65 |
+| hard_full_pipeline | ~0.45 |
+| **Average** | **~0.65** |
 
 ---
 
