@@ -51,9 +51,10 @@ class DataCleaningEnv:
 
     def _load_datasets(self):
         mapping = {
-            "easy_dedup_rename":    "easy",
-            "medium_missing_dtype": "medium",
-            "hard_full_pipeline":   "hard"
+            "easy_dedup_rename":     "easy",
+            "medium_missing_dtype":  "medium",
+            "hard_full_pipeline":    "hard",
+            "expert_sales_pipeline": "expert"
         }
         folder = mapping.get(self.task_id, "easy")
         self.current_df = pd.read_csv(f"datasets/{folder}/dirty.csv")
