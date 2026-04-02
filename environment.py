@@ -51,38 +51,13 @@ class DataCleaningEnv:
 
     def _load_datasets(self):
         mapping = {
-            "easy_dedup_rename":     "easy",
-            "medium_missing_dtype":  "medium",
-            "hard_full_pipeline":    "hard",
-            "expert_sales_pipeline": "expert"
+            "easy_dedup_rename":    "easy",
+            "medium_missing_dtype": "medium",
+            "hard_full_pipeline":   "hard"
         }
         folder = mapping.get(self.task_id, "easy")
         self.current_df = pd.read_csv(f"datasets/{folder}/dirty.csv")
         self.gold_df    = pd.read_csv(f"datasets/{folder}/gold.csv")
-        # Apply random variations so agent cannot memorize
-        self.current_df = self._add_random_variation(self.current_df)
-
-    def _add_random_variation(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Add small random variations to prevent memorization."""
-        df = df.copy()
-        rng = np.random.default_rng()
-
-        for col in df.columns:
-            # Randomly shuffle some numeric values slightly
-            num_series = pd.to_numeric(df[col], errors="coerce")
-            if num_series.notna().sum() > 2:
-                # Add tiny noise to 1-2 numeric cells
-                idx = df.index[num_series.notna()].tolist()
-                if len(idx) >= 2:
-                    pick = rng.choice(idx, size=min(2, len(idx)), replace=False)
-                    for i in pick:
-                        orig = num_series[i]
-                        noise = rng.integers(-3, 4)
-                        df.at[i, col] = str(int(orig + noise)) if isinstance(df.at[i, col], str) else orig + noise
-
-        # Randomly shuffle row order (keeps same data, different order)
-        df = df.sample(frac=1, random_state=rng.integers(0, 9999)).reset_index(drop=True)
-        return df
 
     def _get_observation(self, message: str = "") -> Observation:
         df = self.current_df
@@ -138,27 +113,12 @@ class DataCleaningEnv:
 
         # ── Missing value score ──────────────────────────────────────
         if "missing_score" in scoring:
-            # Count original missing values from dirty dataset
-            import os
-            mapping = {
-                "easy_dedup_rename":     "easy",
-                "medium_missing_dtype":  "medium",
-                "hard_full_pipeline":    "hard",
-                "expert_sales_pipeline": "expert"
-            }
-            folder = mapping.get(self.task_id, "easy")
-            orig_df = pd.read_csv(f"datasets/{folder}/dirty.csv")
-            orig_missing = int(orig_df.isnull().sum().sum())
-            curr_missing = int(df.isnull().sum().sum())
-            gold_missing = int(gold.isnull().sum().sum())
-
-            if orig_missing <= gold_missing:
-                missing_score = 1.0
-            else:
-                filled_needed = orig_missing - gold_missing
-                filled_done   = orig_missing - curr_missing
-                filled_done   = max(0, filled_done)
-                missing_score = filled_done / filled_needed
+            total_cells  = df.shape[0] * df.shape[1]
+            missing_curr = int(df.isnull().sum().sum())
+            missing_gold = int(gold.isnull().sum().sum())
+            if total_cells > 0:
+                filled = max(0, missing_curr - missing_gold)
+                missing_score = 1.0 - (filled / total_cells)
                 missing_score = max(0.0, min(1.0, missing_score))
 
         # ── Dtype score ──────────────────────────────────────────────
@@ -259,10 +219,7 @@ class DataCleaningEnv:
                 fill_val = numeric.median()
                 self.current_df[c] = numeric.fillna(fill_val)
             elif strategy == "mode":
-                mode_vals = self.current_df[c].mode()
-                if len(mode_vals) == 0:
-                    continue
-                fill_val = mode_vals.iloc[0]
+                fill_val = self.current_df[c].mode()[0]
                 self.current_df[c] = self.current_df[c].fillna(fill_val)
             elif strategy == "ffill":
                 self.current_df[c] = self.current_df[c].ffill()
