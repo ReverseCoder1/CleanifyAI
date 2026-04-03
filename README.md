@@ -177,10 +177,10 @@ Scores produced by `meta-llama/Llama-3.3-70B-Instruct`:
 | Task | Score |
 |------|-------|
 | easy_dedup_rename | 1.0000 |
-| medium_missing_dtype | 0.6643 |
-| hard_full_pipeline | 0.8386 |
-| expert_sales_pipeline | 0.9375 |
-| **Average** | **0.8601** |
+| medium_missing_dtype | 1.0000 |
+| hard_full_pipeline | 1.0000 |
+| expert_sales_pipeline | 1.0000 |
+| **Average** | **1.0000** |
 
 ---
 
