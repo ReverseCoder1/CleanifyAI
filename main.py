@@ -4,9 +4,6 @@ import os
 sys.path.insert(0, os.path.dirname(__file__))
 
 from fastapi import FastAPI, HTTPException
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-import os
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Dict, Any
 from models import Action, StepResult, Reward
@@ -25,10 +22,6 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Serve UI
-os.makedirs("static", exist_ok=True)
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -43,8 +36,7 @@ app.add_middleware(
 VALID_TASKS = [
     "easy_dedup_rename",
     "medium_missing_dtype",
-    "hard_full_pipeline",
-    "expert_sales_pipeline"
+    "hard_full_pipeline"
 ]
 
 envs: Dict[str, DataCleaningEnv] = {
@@ -68,10 +60,6 @@ def get_env(task_id: str) -> DataCleaningEnv:
 # ─────────────────────────────────────────
 # ROUTES
 # ─────────────────────────────────────────
-
-@app.get("/ui")
-def ui():
-    return FileResponse("static/index.html")
 
 @app.get("/")
 def root():
@@ -135,21 +123,6 @@ def list_tasks():
                 "operations": [
                     "remove_duplicates", "fill_missing", "fix_dtype",
                     "remove_outliers", "validate_schema", "finish"
-                ]
-            },
-            {
-                "task_id":   "expert_sales_pipeline",
-                "difficulty": "expert",
-                "description": (
-                    "Expert level: Full sales data cleaning pipeline "
-                    "requiring correct order of operations including "
-                    "case standardization, outlier removal, and schema validation."
-                ),
-                "max_steps": 25,
-                "operations": [
-                    "remove_duplicates", "fill_missing", "fix_dtype",
-                    "remove_outliers", "rename_columns",
-                    "validate_schema", "finish"
                 ]
             }
         ]
@@ -246,148 +219,4 @@ def validate():
     return {
         "openenv_valid": all_passed,
         "tasks": results
-    }
-
-
-# In memory leaderboard
-leaderboard_data = []
-
-@app.post("/leaderboard/submit")
-def submit_score(entry: Dict[str, Any]):
-    """Submit a score to the leaderboard."""
-    required = ["model_name", "task_id", "score"]
-    for field in required:
-        if field not in entry:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Missing field: {field}"
-            )
-    if not 0.0 <= float(entry["score"]) <= 1.0:
-        raise HTTPException(
-            status_code=400,
-            detail="Score must be between 0.0 and 1.0"
-        )
-    leaderboard_data.append({
-        "model_name": entry["model_name"],
-        "task_id":    entry["task_id"],
-        "score":      round(float(entry["score"]), 4),
-        "steps":      entry.get("steps", 0),
-        "timestamp":  __import__("datetime").datetime.utcnow().isoformat()
-    })
-    return {"status": "submitted", "entry": leaderboard_data[-1]}
-
-
-@app.get("/leaderboard")
-def get_leaderboard():
-    """Get current leaderboard rankings."""
-    if not leaderboard_data:
-        # Return baseline scores
-        return {
-            "leaderboard": [
-                {
-                    "rank": 1,
-                    "model_name": "gpt-4o-mini (baseline)",
-                    "easy_score":   1.0000,
-                    "medium_score": 0.6643,
-                    "hard_score":   0.8386,
-                    "avg_score":    0.8343
-                }
-            ],
-            "total_submissions": 1
-        }
-
-    # Group by model
-    from collections import defaultdict
-    model_scores = defaultdict(dict)
-    for entry in leaderboard_data:
-        model_scores[entry["model_name"]][entry["task_id"]] = entry["score"]
-
-    ranked = []
-    for model, scores in model_scores.items():
-        avg = sum(scores.values()) / len(scores) if scores else 0
-        ranked.append({
-            "model_name":   model,
-            "scores":       scores,
-            "avg_score":    round(avg, 4)
-        })
-
-    ranked.sort(key=lambda x: x["avg_score"], reverse=True)
-    for i, r in enumerate(ranked):
-        r["rank"] = i + 1
-
-    return {
-        "leaderboard":       ranked,
-        "total_submissions": len(leaderboard_data)
-    }
-
-
-# In memory leaderboard
-leaderboard_data = []
-
-@app.post("/leaderboard/submit")
-def submit_score(entry: Dict[str, Any]):
-    """Submit a score to the leaderboard."""
-    required = ["model_name", "task_id", "score"]
-    for field in required:
-        if field not in entry:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Missing field: {field}"
-            )
-    if not 0.0 <= float(entry["score"]) <= 1.0:
-        raise HTTPException(
-            status_code=400,
-            detail="Score must be between 0.0 and 1.0"
-        )
-    leaderboard_data.append({
-        "model_name": entry["model_name"],
-        "task_id":    entry["task_id"],
-        "score":      round(float(entry["score"]), 4),
-        "steps":      entry.get("steps", 0),
-        "timestamp":  __import__("datetime").datetime.utcnow().isoformat()
-    })
-    return {"status": "submitted", "entry": leaderboard_data[-1]}
-
-
-@app.get("/leaderboard")
-def get_leaderboard():
-    """Get current leaderboard rankings."""
-    if not leaderboard_data:
-        # Return baseline scores
-        return {
-            "leaderboard": [
-                {
-                    "rank": 1,
-                    "model_name": "gpt-4o-mini (baseline)",
-                    "easy_score":   1.0000,
-                    "medium_score": 0.6643,
-                    "hard_score":   0.8386,
-                    "avg_score":    0.8343
-                }
-            ],
-            "total_submissions": 1
-        }
-
-    # Group by model
-    from collections import defaultdict
-    model_scores = defaultdict(dict)
-    for entry in leaderboard_data:
-        model_scores[entry["model_name"]][entry["task_id"]] = entry["score"]
-
-    ranked = []
-    for model, scores in model_scores.items():
-        avg = sum(scores.values()) / len(scores) if scores else 0
-        ranked.append({
-            "model_name":   model,
-            "scores":       scores,
-            "avg_score":    round(avg, 4)
-        })
-
-    ranked.sort(key=lambda x: x["avg_score"], reverse=True)
-    for i, r in enumerate(ranked):
-        r["rank"] = i + 1
-
-    return {
-        "leaderboard":       ranked,
-        "total_submissions": len(leaderboard_data)
     }
