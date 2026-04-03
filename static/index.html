@@ -316,9 +316,9 @@
 
     const TASK_OPERATIONS = {
         'easy_dedup_rename':     ['remove_duplicates', 'rename_columns', 'finish'],
-        'medium_missing_dtype':  ['fill_missing', 'fix_dtype', 'finish'],
-        'hard_full_pipeline':    ['remove_duplicates', 'fill_missing', 'fix_dtype', 'remove_outliers', 'validate_schema', 'finish'],
-        'expert_sales_pipeline': ['remove_duplicates', 'rename_columns', 'fill_missing', 'fix_dtype', 'remove_outliers', 'validate_schema', 'finish']
+        'medium_missing_dtype':  ['fill_missing_mean', 'fill_missing_mode', 'fill_missing_median', 'fix_dtype', 'finish'],
+        'hard_full_pipeline':    ['remove_duplicates', 'fill_missing_mean', 'fill_missing_mode', 'fill_missing_median', 'fix_dtype', 'remove_outliers', 'validate_schema', 'finish'],
+        'expert_sales_pipeline': ['remove_duplicates', 'rename_columns', 'fill_missing_mean', 'fill_missing_mode', 'fill_missing_median', 'fix_dtype', 'remove_outliers', 'validate_schema', 'finish']
     };
 
     const ACTION_PARAMS = {
@@ -419,7 +419,14 @@
         if (episodeDone) { addLog('Episode done — reset first', 'warning'); return; }
         stepCount++;
         const params = ACTION_PARAMS[operation] || {};
-        addLog('[Step ' + stepCount + '] → ' + operation, 'info');
+
+        // Map fill_missing_* to fill_missing operation
+        let actualOperation = operation;
+        if (operation.startsWith('fill_missing_')) {
+            actualOperation = 'fill_missing';
+        }
+
+        addLog('[Step ' + stepCount + '] → ' + operation + ' ' + JSON.stringify(params), 'info');
 
         const btn = document.getElementById('btn-' + operation);
         if (btn) { btn.disabled = true; btn.innerHTML = '<span class="loading"></span> Running...'; }
@@ -428,7 +435,7 @@
             const res = await fetch(BASE + '/step/' + currentTask, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({operation, parameters: params})
+                body: JSON.stringify({operation: actualOperation, parameters: params})
             });
             const data = await res.json();
             const obs = data.observation;
