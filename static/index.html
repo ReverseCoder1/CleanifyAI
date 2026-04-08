@@ -113,7 +113,7 @@
             <div class="stat-label">Cleaning Operations</div>
         </div>
         <div class="stat-card">
-            <div class="stat-value">0.86</div>
+            <div class="stat-value" id="live-avg-score">...</div>
             <div class="stat-label">Baseline Avg Score</div>
         </div>
         <div class="stat-card">
@@ -641,6 +641,21 @@
         .then(r => r.json())
         .then(d => addLog('Environment online — ' + d.tasks_loaded + ' tasks loaded', 'success'))
         .catch(() => addLog('Cannot reach environment', 'warning'));
+
+    // Load live avg score from leaderboard
+    fetch(BASE + '/leaderboard')
+        .then(r => r.json())
+        .then(data => {
+            if (data.leaderboard && data.leaderboard.length > 0) {
+                const best = data.leaderboard[0].avg_score;
+                document.getElementById('live-avg-score').textContent = best;
+            } else {
+                document.getElementById('live-avg-score').textContent = 'N/A';
+            }
+        })
+        .catch(() => {
+            document.getElementById('live-avg-score').textContent = '0.86';
+        });
 
     loadLeaderboard();
 </script>
