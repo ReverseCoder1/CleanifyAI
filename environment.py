@@ -60,8 +60,6 @@ class DataCleaningEnv:
         folder = mapping.get(self.task_id, "easy")
         self.current_df = pd.read_csv(f"datasets/{folder}/dirty.csv")
         self.gold_df    = pd.read_csv(f"datasets/{folder}/gold.csv")
-        # Apply random variations so agent cannot memorize
-        self.current_df = self._add_random_variation(self.current_df)
 
     def _add_random_variation(self, df: pd.DataFrame) -> pd.DataFrame:
         """Add small random variations to prevent memorization."""
