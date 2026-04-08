@@ -1,11 +1,6 @@
 ---
 title: Data Cleaning OpenEnv
-emoji: 🧹
-colorFrom: blue
-colorTo: green
 sdk: docker
-pinned: false
-license: mit
 tags:
   - openenv
   - data-cleaning
