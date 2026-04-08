@@ -334,13 +334,15 @@
     };
 
     const ACTION_DESC = {
-        'remove_duplicates': 'Delete repeated rows',
-        'rename_columns':    'Convert to snake_case',
-        'fill_missing':      'Fill empty cells (mean)',
-        'fix_dtype':         'Fix wrong data types',
-        'remove_outliers':   'Remove extreme values',
-        'validate_schema':   'Check column names',
-        'finish':            'Submit cleaned dataset'
+        'remove_duplicates':   'Delete repeated rows',
+        'rename_columns':      'Convert to snake_case',
+        'fill_missing_mean':   'Fill cells with MEAN',
+        'fill_missing_mode':   'Fill cells with MODE',
+        'fill_missing_median': 'Fill cells with MEDIAN',
+        'fix_dtype':           'Fix wrong data types',
+        'remove_outliers':     'Remove extreme values',
+        'validate_schema':     'Check column names',
+        'finish':              'Submit cleaned dataset'
     };
 
     const COMPONENT_COLORS = {
