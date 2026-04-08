@@ -1,19 +1,3 @@
----
-title: Data Cleaning OpenEnv
-emoji: 🧹
-colorFrom: blue
-colorTo: green
-sdk: docker
-pinned: false
-license: mit
-tags:
-  - openenv
-  - data-cleaning
-  - reinforcement-learning
-  - agent
-  - real-world
----
-
 # 🧹 Data Cleaning OpenEnv
 
 An OpenEnv-compliant environment where AI agents learn to clean
@@ -44,7 +28,6 @@ incrementally.
 | easy_dedup_rename | Easy | Remove duplicates + rename columns to snake_case | 10 |
 | medium_missing_dtype | Medium | Fill missing values + fix data types | 15 |
 | hard_full_pipeline | Hard | Full pipeline: duplicates + missing + dtypes + outliers + schema | 20 |
-| expert_sales_pipeline | Expert | Full sales pipeline with case standardization + outlier removal | 25 |
 
 ### Easy Task
 Agent receives an employee dataset with duplicate rows and
@@ -176,11 +159,10 @@ Scores produced by `meta-llama/Llama-3.3-70B-Instruct`:
 
 | Task | Score |
 |------|-------|
-| easy_dedup_rename | 1.0000 |
-| medium_missing_dtype | 1.0000 |
-| hard_full_pipeline | 1.0000 |
-| expert_sales_pipeline | 1.0000 |
-| **Average** | **1.0000** |
+| easy_dedup_rename | ~0.85 |
+| medium_missing_dtype | ~0.65 |
+| hard_full_pipeline | ~0.45 |
+| **Average** | **~0.65** |
 
 ---
 
