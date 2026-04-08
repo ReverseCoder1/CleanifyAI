@@ -15,8 +15,12 @@ import sys
 import json
 import time
 from typing import List, Dict, Any
+from dotenv import load_dotenv
 
 from openai import OpenAI
+
+# Load environment variables from .env file
+load_dotenv()
 
 # ─────────────────────────────────────────
 # CONFIG

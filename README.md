@@ -108,7 +108,10 @@ run a complete cleaning pipeline in the right sequence.
 
 ## 🏆 Reward Function
 
-Rewards are computed after every step providing dense signal:
+Rewards are computed after every step providing dense signal for each data quality component.
+**Importantly, the reward function penalizes out-of-order operations**, encouraging agents to follow the optimal data cleaning sequence.
+
+### Reward Components
 
 | Component | Description |
 |-----------|-------------|
@@ -117,9 +120,47 @@ Rewards are computed after every step providing dense signal:
 | dtype_score | Proportion of columns with correct data types |
 | outlier_score | How close numeric distributions are to gold |
 | schema_score | Proportion of column names matching gold |
-| penalty | Small penalty for using too many steps |
+| penalty | Penalty for out-of-order operations or too many steps |
 
-**Total reward = weighted sum of components (0.0 to 1.0)**
+### Sequence Penalties
+
+The reward function enforces optimal operation order:
+
+```
+Optimal Sequence:
+1. Remove Duplicates    (clean redundant data first)
+2. Fix Data Types       (understand structure)
+3. Fill Missing Values  (based on correct types)
+4. Remove Outliers      (after understanding distribution)
+5. Validate Schema      (final verification)
+```
+
+**Penalty Rules:**
+- **Out-of-order operation:** -0.08 (e.g., filling missing before fixing types)
+- **Repeated operation:** -0.02 (e.g., filling missing twice in a row)
+- **Exceeded step limit:** -0.05 (using >80% of max_steps)
+
+**Total reward = weighted sum of components - penalties (0.0 to 1.0)**
+
+For example:
+- Good sequence → Rewards improve with each step toward 1.0 ✅
+- Bad sequence → Rewards degrade as penalties accumulate ❌
+
+---
+
+## 📊 Baseline Scores
+
+Baseline scores with **gpt-4o-mini** (sequence-aware reward function):
+
+| Task | Difficulty | Score | Notes |
+|------|-----------|-------|-------|
+| easy_dedup_rename | Easy | 0.9900 | Follows optimal sequence |
+| medium_missing_dtype | Medium | 0.7000 | Some out-of-order operations |
+| hard_full_pipeline | Hard | 0.6636 | Oscillates between operations |
+| **Average** | - | **0.7845** | Room for improvement |
+
+**Note:** Scores are lower than original because agents sometimes violate the sequence.
+This is intentional—it teaches agents the correct workflow!
 
 ---
 
@@ -162,29 +203,13 @@ state = requests.get(
 ### Run Baseline Inference
 ```bash
 export HF_TOKEN=your_token_here
-export MODEL_NAME=meta-llama/Llama-3.3-70B-Instruct
-export API_BASE_URL=https://router.huggingface.co/v1
+export MODEL_NAME=gpt-4o-mini
+export API_BASE_URL=https://api.openai.com/v1
 
 python inference.py
 ```
 
 ---
-
-## 📊 Baseline Scores
-
-Scores produced by `meta-llama/Llama-3.3-70B-Instruct`:
-
-| Task | Score |
-|------|-------|
-| easy_dedup_rename | 1.0000 |
-| medium_missing_dtype | 1.0000 |
-| hard_full_pipeline | 1.0000 |
-| expert_sales_pipeline | 1.0000 |
-| **Average** | **1.0000** |
-
----
-
-## 📁 Project Structure
 ```
 data-cleaning-openenv/
 ├── main.py              # FastAPI server

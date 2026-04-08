@@ -32,6 +32,7 @@ class DataCleaningEnv:
         self.done: bool = False
         self.max_steps: int = 10
         self.reward_history = []
+        self.actions_taken: List[str] = []  # Track sequence of actions
         self._load_task_metadata()
 
     # ─────────────────────────────────────────
@@ -112,6 +113,62 @@ class DataCleaningEnv:
             task_description=self.task_meta.get("description", ""),
             message=message
         )
+
+    def _compute_sequence_penalty(self) -> float:
+        """
+        Penalize illogical action sequences.
+
+        Optimal sequence:
+        1. remove_duplicates (clean up redundant data)
+        2. fix_dtype (understand structure)
+        3. fill_missing (based on correct types)
+        4. remove_outliers (after understanding distribution)
+        5. validate_schema (final check)
+
+        Penalties:
+        - Doing operations out of order: -0.05 per violation
+        - Repeating same operation: -0.02 per repeat
+        """
+        OPTIMAL_ORDER = [
+            "remove_duplicates",
+            "fix_dtype",
+            "fill_missing_mean",
+            "fill_missing_mode",
+            "fill_missing_median",
+            "remove_outliers",
+            "validate_schema",
+        ]
+
+        penalty = 0.0
+        last_order_idx = -1
+        prev_action = None
+
+        # Track positions of operations in optimal order
+        for action in self.actions_taken:
+            if action == "finish":
+                continue
+
+            # Penalize repeated same actions (doing same thing twice in a row)
+            if action == prev_action and action not in ["fill_missing_mean", "fill_missing_mode", "fill_missing_median", "remove_outliers"]:
+                penalty += 0.02
+
+            # Find this action in optimal order
+            if action in OPTIMAL_ORDER:
+                current_idx = OPTIMAL_ORDER.index(action)
+
+                # Penalize out-of-order operations
+                if current_idx < last_order_idx:
+                    # Going backward in sequence (e.g., doing remove_duplicates after fill_missing)
+                    penalty += 0.08
+
+                last_order_idx = current_idx
+            else:
+                # Unknown operation
+                penalty += 0.01
+
+            prev_action = action
+
+        return min(0.25, penalty)  # Cap penalty at 0.25
 
     def _compute_reward(self) -> Reward:
         df   = self.current_df
@@ -194,10 +251,15 @@ class DataCleaningEnv:
             matched   = sum(1 for c in gold_cols if c in curr_cols)
             schema_score = matched / len(gold_cols) if gold_cols else 0.0
 
-        # ── Penalty for too many steps ───────────────────────────────
+        # ── Penalty for too many steps + sequence violations ─────────────
         step_ratio = self.step_count / self.max_steps
+        base_penalty = 0.0
         if step_ratio > 0.8:
-            penalty = 0.05
+            base_penalty = 0.05
+
+        # Add sequence-based penalty
+        sequence_penalty = self._compute_sequence_penalty()
+        penalty = base_penalty + sequence_penalty
 
         # ── Weighted total ───────────────────────────────────────────
         weights = {
@@ -388,6 +450,7 @@ class DataCleaningEnv:
         self.step_count   = 0
         self.done         = False
         self.reward_history = []
+        self.actions_taken = []  # Reset action history
 
         obs    = self._get_observation("Environment reset. Start cleaning!")
         reward = Reward(total=0.0)
@@ -441,6 +504,9 @@ class DataCleaningEnv:
                 message = f"Unknown operation: {op}. No changes made."
         except Exception as e:
             message = f"Operation failed: {str(e)}"
+
+        # ── Track action for sequence penalties ───────────────────────────
+        self.actions_taken.append(action.operation)
 
         # ── Check max steps ──────────────────────────────────────────
         if self.step_count >= self.max_steps:

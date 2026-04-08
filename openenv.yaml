@@ -97,10 +97,11 @@ reward_space:
 
 baseline_scores:
   model: gpt-4o-mini
-  easy_dedup_rename: 1.0000
-  medium_missing_dtype: 0.6643
-  hard_full_pipeline: 0.8386
-  average: 0.8343
+  description: Sequence-aware reward function (rewards optimal order of operations)
+  easy_dedup_rename: 0.9900
+  medium_missing_dtype: 0.7000
+  hard_full_pipeline: 0.6636
+  average: 0.7845
 
 runtime:
   language: python

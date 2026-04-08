@@ -11,7 +11,8 @@ RUN pip install --no-cache-dir \
     pandas==2.1.3 \
     numpy==1.26.2 \
     openai==1.3.7 \
-    pyyaml==6.0.1
+    pyyaml==6.0.1 \
+    python-dotenv==1.0.0
 
 # Copy all project files
 COPY . .
