@@ -7,12 +7,25 @@ description: >
   and schema validation.
 
 author: thorodin103
+license: mit
+
 tags:
   - openenv
   - data-cleaning
   - real-world
   - pandas
   - tabular
+  - reinforcement-learning
+  - agent
+
+api:
+  base_url: https://thorodin103-data-cleaning-openenv.hf.space
+  reset: POST /reset/{task_id}
+  step: POST /step/{task_id}
+  state: GET /state/{task_id}
+  tasks: GET /tasks
+  validate: GET /validate
+  health: GET /health
 
 tasks:
   - id: easy_dedup_rename
@@ -69,7 +82,6 @@ action_space:
       - finish
   parameters:
     type: object
-    description: Operation specific parameters
 
 reward_space:
   total:
@@ -83,13 +95,12 @@ reward_space:
     - schema_score
     - penalty
 
-api:
-  reset: POST /reset/{task_id}
-  step: POST /step/{task_id}
-  state: GET /state/{task_id}
-  tasks: GET /tasks
-  validate: GET /validate
-  health: GET /health
+baseline_scores:
+  model: gpt-4o-mini
+  easy_dedup_rename: 1.0000
+  medium_missing_dtype: 0.6643
+  hard_full_pipeline: 0.8386
+  average: 0.8343
 
 runtime:
   language: python
