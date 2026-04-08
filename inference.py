@@ -261,15 +261,48 @@ def main():
     print(f"\n  Average Score: {avg_score:.4f}")
     print("="*50)
 
-    # Save results
+    # Save results locally
     output = {
-        "model":        MODEL_NAME,
-        "tasks":        all_results,
+        "model":         MODEL_NAME,
+        "tasks":         all_results,
         "average_score": round(avg_score, 4)
     }
     with open("baseline_results.json", "w") as f:
         json.dump(output, f, indent=2)
     print("\n  Results saved to baseline_results.json")
+
+    # Auto submit to leaderboard
+    HF_SPACE_URL = os.getenv(
+        "HF_SPACE_URL",
+        "https://thorodin103-data-cleaning-openenv.hf.space"
+    )
+    print("\n  Submitting scores to leaderboard...")
+    try:
+        import urllib.request
+        for r in all_results:
+            if "error" not in r:
+                entry = {
+                    "model_name": MODEL_NAME,
+                    "task_id":    r["task_id"],
+                    "score":      r["final_score"],
+                    "steps":      r["steps"]
+                }
+                data = json.dumps(entry).encode("utf-8")
+                req  = urllib.request.Request(
+                    f"{HF_SPACE_URL}/leaderboard/submit",
+                    data=data,
+                    headers={"Content-Type": "application/json"},
+                    method="POST"
+                )
+                with urllib.request.urlopen(req, timeout=10) as resp:
+                    result = json.loads(resp.read())
+                    print(f"  ✅ Submitted {r['task_id']}: {r['final_score']}")
+        print("  Leaderboard updated!")
+        print(f"  View at: {HF_SPACE_URL}/ui")
+    except Exception as e:
+        print(f"  ⚠️  Leaderboard submit failed: {e}")
+        print("     Scores saved locally in baseline_results.json")
+
     print("  Done!")
 
 
