@@ -20,7 +20,9 @@
     "description": "Clean a customer dataset by: 1) Filling missing values using correct strategy (mean for numeric, mode for categorical), 2) Fixing data types (age, purchases, salary must be numeric). Call finish when done.",
     "max_steps": 15,
     "operations_allowed": [
-      "fill_missing",
+      "fill_missing_mean",
+      "fill_missing_mode",
+      "fill_missing_median",
       "fix_dtype",
       "finish"
     ],
@@ -36,7 +38,9 @@
     "max_steps": 20,
     "operations_allowed": [
       "remove_duplicates",
-      "fill_missing",
+      "fill_missing_mean",
+      "fill_missing_mode",
+      "fill_missing_median",
       "fix_dtype",
       "remove_outliers",
       "validate_schema",
@@ -58,7 +62,9 @@
     "operations_allowed": [
       "remove_duplicates",
       "rename_columns",
-      "fill_missing",
+      "fill_missing_mean",
+      "fill_missing_mode",
+      "fill_missing_median",
       "fix_dtype",
       "remove_outliers",
       "validate_schema",

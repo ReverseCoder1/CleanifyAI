@@ -7,7 +7,9 @@ from models import Action, Observation, Reward, StepResult, TaskInfo
 
 AVAILABLE_OPERATIONS = [
     "remove_duplicates",
-    "fill_missing", 
+    "fill_missing_mean",
+    "fill_missing_mode",
+    "fill_missing_median",
     "fix_dtype",
     "remove_outliers",
     "rename_columns",
@@ -238,7 +240,7 @@ class DataCleaningEnv:
         self.current_df = self.current_df.drop_duplicates(subset=subset)
         self.current_df = self.current_df.reset_index(drop=True)
         removed = before - len(self.current_df)
-        return f"Removed {removed} duplicate rows. Rows: {before} → {len(self.current_df)}"
+        return f"Removed {removed} duplicate rows. Rows: {before} -> {len(self.current_df)}"
 
     def _op_fill_missing(self, params: Dict) -> str:
         col      = params.get("column")
@@ -249,28 +251,52 @@ class DataCleaningEnv:
         for c in cols_to_fill:
             if self.current_df[c].isnull().sum() == 0:
                 continue
-            if strategy == "mean":
-                numeric = pd.to_numeric(self.current_df[c], errors="coerce")
-                fill_val = numeric.mean()
-                self.current_df[c] = numeric.fillna(round(fill_val, 2))
-            elif strategy == "median":
-                numeric = pd.to_numeric(self.current_df[c], errors="coerce")
-                fill_val = numeric.median()
-                self.current_df[c] = numeric.fillna(fill_val)
+
+            # For mean/median strategies, only apply to columns that are already numeric or can be safely converted
+            if strategy in ["mean", "median"]:
+                # Check if column is already numeric
+                if pd.api.types.is_numeric_dtype(self.current_df[c]):
+                    # Column is already numeric, apply strategy directly
+                    if strategy == "mean":
+                        fill_val = self.current_df[c].mean()
+                        self.current_df[c] = self.current_df[c].fillna(round(fill_val, 2))
+                    elif strategy == "median":
+                        fill_val = self.current_df[c].median()
+                        self.current_df[c] = self.current_df[c].fillna(fill_val)
+                    messages.append(f"{c}->{strategy}")
+                else:
+                    # Try to convert to numeric - if it works for most values, use it
+                    numeric = pd.to_numeric(self.current_df[c], errors="coerce")
+                    # Only apply if at least 50% of non-null values are numeric
+                    non_null_count = self.current_df[c].notna().sum()
+                    numeric_count = numeric.notna().sum()
+                    if non_null_count > 0 and numeric_count / non_null_count >= 0.5:
+                        if strategy == "mean":
+                            fill_val = numeric.mean()
+                            self.current_df[c] = numeric.fillna(round(fill_val, 2))
+                        elif strategy == "median":
+                            fill_val = numeric.median()
+                            self.current_df[c] = numeric.fillna(fill_val)
+                        messages.append(f"{c}->{strategy}")
+                    # else: skip this column as it's not suitable for numeric strategy
+
             elif strategy == "mode":
                 mode_vals = self.current_df[c].mode()
                 if len(mode_vals) == 0:
                     continue
                 fill_val = mode_vals.iloc[0]
                 self.current_df[c] = self.current_df[c].fillna(fill_val)
+                messages.append(f"{c}->{strategy}")
             elif strategy == "ffill":
                 self.current_df[c] = self.current_df[c].ffill()
+                messages.append(f"{c}->ffill")
             else:
+                # Custom fill value
                 fill_val = strategy
                 self.current_df[c] = self.current_df[c].fillna(fill_val)
-            messages.append(f"{c}→{strategy}")
+                messages.append(f"{c}->{strategy}")
 
-        return f"Filled missing values: {', '.join(messages)}"
+        return f"Filled missing values: {', '.join(messages)}" if messages else "No missing values to fill"
 
     def _op_fix_dtype(self, params: Dict) -> str:
         col    = params.get("column")
@@ -284,17 +310,17 @@ class DataCleaningEnv:
                     converted = pd.to_numeric(self.current_df[c], errors="coerce")
                     if converted.notna().all():
                         self.current_df[c] = converted.astype(int)
-                        messages.append(f"{c}→int")
+                        messages.append(f"{c}->int")
                 elif dtype == "float":
                     self.current_df[c] = pd.to_numeric(
                         self.current_df[c], errors="coerce"
                     )
-                    messages.append(f"{c}→float")
+                    messages.append(f"{c}->float")
                 elif dtype == "str":
                     self.current_df[c] = self.current_df[c].astype(str)
-                    messages.append(f"{c}→str")
+                    messages.append(f"{c}->str")
             except Exception as e:
-                messages.append(f"{c}→failed({e})")
+                messages.append(f"{c}->failed({e})")
 
         return f"Fixed dtypes: {', '.join(messages)}"
 
@@ -388,6 +414,12 @@ class DataCleaningEnv:
         params = action.parameters
         message = ""
 
+        # Map fill_missing_* operations to fill_missing with strategy parameter
+        if op.startswith("fill_missing_"):
+            strategy = op.replace("fill_missing_", "")
+            params["strategy"] = strategy
+            op = "fill_missing"
+
         # ── Route operation ──────────────────────────────────────────
         try:
             if op == "remove_duplicates":
@@ -425,7 +457,7 @@ class DataCleaningEnv:
             done=self.done,
             info={
                 "step": self.step_count,
-                "operation": op,
+                "operation": action.operation,
                 "reward_history": self.reward_history
             }
         )

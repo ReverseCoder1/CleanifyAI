@@ -1,14 +1,13 @@
-
 """
-Inference Script — Data Cleaning OpenEnv
+Inference Script - Data Cleaning OpenEnv
 =========================================
-Runs a baseline LLM agent against all 3 tasks
-and produces reproducible scores.
+Runs a baseline LLM agent against all tasks
+and produces output in the required format for hackathon submission.
 
 Required environment variables:
-    API_BASE_URL  — LLM API endpoint
-    MODEL_NAME    — model identifier
-    HF_TOKEN      — Hugging Face API key
+    API_BASE_URL  - LLM API endpoint (default: https://api.openai.com/v1)
+    MODEL_NAME    - model identifier (default: gpt-4o-mini)
+    HF_TOKEN      - Hugging Face API key (REQUIRED)
 """
 
 import os
@@ -24,10 +23,13 @@ from openai import OpenAI
 # ─────────────────────────────────────────
 
 API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
-API_KEY      = os.getenv("OPENAI_API_KEY") or os.getenv("HF_TOKEN") or os.getenv("API_KEY", "")
 MODEL_NAME   = os.getenv("MODEL_NAME", "gpt-4o-mini")
+HF_TOKEN     = os.getenv("HF_TOKEN")
 
-MAX_STEPS   = 15
+if HF_TOKEN is None:
+    raise ValueError("HF_TOKEN environment variable is required")
+
+MAX_STEPS   = 20
 TEMPERATURE = 0.1
 MAX_TOKENS  = 400
 
@@ -35,8 +37,9 @@ VALID_TASKS = [
     "easy_dedup_rename",
     "medium_missing_dtype",
     "hard_full_pipeline",
-    "expert_sales_pipeline"
 ]
+
+ENV_NAME = "data-cleaning-openenv"
 
 SYSTEM_PROMPT = """
 You are an expert data cleaning agent.
@@ -45,7 +48,9 @@ step by step using the available operations.
 
 Available operations:
 - remove_duplicates: {"operation": "remove_duplicates", "parameters": {}}
-- fill_missing: {"operation": "fill_missing", "parameters": {"strategy": "mean|median|mode"}}
+- fill_missing_mean: {"operation": "fill_missing_mean", "parameters": {}}
+- fill_missing_mode: {"operation": "fill_missing_mode", "parameters": {}}
+- fill_missing_median: {"operation": "fill_missing_median", "parameters": {}}
 - fix_dtype: {"operation": "fix_dtype", "parameters": {"dtype": "auto"}}
 - remove_outliers: {"operation": "remove_outliers", "parameters": {"method": "iqr"}}
 - rename_columns: {"operation": "rename_columns", "parameters": {}}
@@ -114,21 +119,27 @@ def parse_action(response_text: str) -> Dict[str, Any]:
         return {"operation": "finish", "parameters": {}}
 
 
+def format_action_str(operation: str, parameters: Dict) -> str:
+    """Format action as a string for output."""
+    if not parameters:
+        return operation
+    return f"{operation}({json.dumps(parameters)})"
+
+
 def run_task(
     client: OpenAI,
-    env_module,
     task_id: str
 ) -> Dict[str, Any]:
-    """Run one full episode for a task."""
-    print(f"\n{'='*50}")
-    print(f"  Task: {task_id}")
-    print(f"{'='*50}")
+    """Run one full episode for a task with required output format."""
 
     # Import here to use local environment
     from environment import DataCleaningEnv
     from models import Action
 
     env = DataCleaningEnv(task_id=task_id)
+
+    # [START] line
+    print(f"[START] task={task_id} env={ENV_NAME} model={MODEL_NAME}")
 
     # Reset
     result     = env.reset()
@@ -137,14 +148,12 @@ def run_task(
     step       = 0
     rewards    = []
     actions_taken = []
-
-    print(f"  Description: {obs.get('task_description', '')[:80]}...")
-    print(f"  Initial shape: {obs.get('shape', [])}")
-    print(f"  Duplicates: {obs.get('duplicate_count', 0)}")
-    print(f"  Missing: {sum(obs.get('missing_values', {}).values())}")
+    success    = False
+    last_error = None
 
     while not done and step < MAX_STEPS:
         step += 1
+        last_error = None
 
         # Build prompt
         user_prompt = build_user_prompt(obs)
@@ -164,7 +173,7 @@ def run_task(
             )
             response_text = completion.choices[0].message.content or ""
         except Exception as e:
-            print(f"  [Step {step}] LLM error: {e}")
+            last_error = str(e)
             response_text = '{"operation": "finish", "parameters": {}}'
 
         # Parse action
@@ -173,137 +182,94 @@ def run_task(
             operation=action_dict.get("operation", "finish"),
             parameters=action_dict.get("parameters", {})
         )
-
-        print(f"  [Step {step}] Action: {action.operation} {action.parameters}")
-
-        # Step environment
-        result  = env.step(action)
-        obs     = result.observation.model_dump()
-        done    = result.done
-        reward  = result.reward.total
-        rewards.append(reward)
         actions_taken.append(action.operation)
 
-        print(f"           Reward: {reward:.4f} | Message: {obs.get('message', '')[:60]}")
+        # Step environment
+        try:
+            result  = env.step(action)
+            obs     = result.observation.model_dump()
+            done    = result.done
+            reward  = result.reward.total
+            rewards.append(reward)
+
+            # Check if operation failed
+            message = obs.get("message", "")
+            if "failed" in message.lower() or "error" in message.lower():
+                last_error = message
+
+        except Exception as e:
+            last_error = str(e)
+            reward = 0.0
+            rewards.append(reward)
+            done = True
+
+        # [STEP] line - required format
+        action_str = format_action_str(action.operation, action.parameters)
+        error_str = last_error if last_error else "null"
+        done_str = "true" if done else "false"
+        print(f"[STEP] step={step} action={action_str} reward={reward:.2f} done={done_str} error={error_str}")
 
         if done:
-            print(f"  Episode done at step {step}")
+            success = reward > 0.5  # Consider success if final reward > 0.5
             break
 
         # Small delay to avoid rate limiting
         time.sleep(0.5)
 
-    final_reward = rewards[-1] if rewards else 0.0
-    print(f"\n  Final Score: {final_reward:.4f}")
-    print(f"  Steps taken: {step}")
-    print(f"  Actions: {actions_taken}")
+    # [END] line - required format
+    success_str = "true" if success else "false"
+    rewards_str = ",".join([f"{r:.2f}" for r in rewards])
+    print(f"[END] success={success_str} steps={step} rewards={rewards_str}")
 
     return {
         "task_id":      task_id,
-        "final_score":  round(final_reward, 4),
+        "final_score":  round(rewards[-1], 4) if rewards else 0.0,
         "steps":        step,
         "rewards":      rewards,
         "actions":      actions_taken,
-        "done":         done
+        "success":      success
     }
 
 
 def main():
-    print("\n" + "="*50)
-    print("  Data Cleaning OpenEnv — Baseline Inference")
-    print("="*50)
-    print(f"  Model:    {MODEL_NAME}")
-    print(f"  API URL:  {API_BASE_URL}")
-    print(f"  Tasks:    {VALID_TASKS}")
-    print("="*50)
-
     # Validate config
-    if not API_KEY:
-        print("ERROR: HF_TOKEN or API_KEY not set")
+    if not HF_TOKEN:
+        print("ERROR: HF_TOKEN not set", file=sys.stderr)
         sys.exit(1)
 
     if not MODEL_NAME:
-        print("ERROR: MODEL_NAME not set")
+        print("ERROR: MODEL_NAME not set", file=sys.stderr)
         sys.exit(1)
 
     # Init client
     client = OpenAI(
         base_url=API_BASE_URL,
-        api_key=API_KEY
+        api_key=HF_TOKEN
     )
 
     # Run all tasks
     all_results = []
     for task_id in VALID_TASKS:
         try:
-            result = run_task(client, None, task_id)
+            result = run_task(client, task_id)
             all_results.append(result)
         except Exception as e:
-            print(f"  ERROR on task {task_id}: {e}")
+            print(f"[ERROR] Task {task_id} failed: {e}", file=sys.stderr)
             all_results.append({
                 "task_id":     task_id,
                 "final_score": 0.0,
+                "success":     False,
                 "error":       str(e)
             })
 
-    # Summary
-    print("\n" + "="*50)
-    print("  FINAL RESULTS SUMMARY")
-    print("="*50)
-    total_score = 0.0
-    for r in all_results:
-        score = r.get("final_score", 0.0)
-        total_score += score
-        status = "ERROR" if "error" in r else "OK"
-        print(f"  {r['task_id']:<30} Score: {score:.4f}  [{status}]")
-
-    avg_score = total_score / len(all_results)
-    print(f"\n  Average Score: {avg_score:.4f}")
-    print("="*50)
-
-    # Save results locally
+    # Save results locally (optional)
     output = {
         "model":         MODEL_NAME,
         "tasks":         all_results,
-        "average_score": round(avg_score, 4)
+        "average_score": round(sum(r.get("final_score", 0.0) for r in all_results) / len(all_results), 4)
     }
     with open("baseline_results.json", "w") as f:
         json.dump(output, f, indent=2)
-    print("\n  Results saved to baseline_results.json")
-
-    # Auto submit to leaderboard
-    HF_SPACE_URL = os.getenv(
-        "HF_SPACE_URL",
-        "https://thorodin103-data-cleaning-openenv.hf.space"
-    )
-    print("\n  Submitting scores to leaderboard...")
-    try:
-        import urllib.request
-        for r in all_results:
-            if "error" not in r:
-                entry = {
-                    "model_name": MODEL_NAME,
-                    "task_id":    r["task_id"],
-                    "score":      r["final_score"],
-                    "steps":      r["steps"]
-                }
-                data = json.dumps(entry).encode("utf-8")
-                req  = urllib.request.Request(
-                    f"{HF_SPACE_URL}/leaderboard/submit",
-                    data=data,
-                    headers={"Content-Type": "application/json"},
-                    method="POST"
-                )
-                with urllib.request.urlopen(req, timeout=10) as resp:
-                    result = json.loads(resp.read())
-                    print(f"  ✅ Submitted {r['task_id']}: {r['final_score']}")
-        print("  Leaderboard updated!")
-        print(f"  View at: {HF_SPACE_URL}/ui")
-    except Exception as e:
-        print(f"  ⚠️  Leaderboard submit failed: {e}")
-        print("     Scores saved locally in baseline_results.json")
-
-    print("  Done!")
 
 
 if __name__ == "__main__":
