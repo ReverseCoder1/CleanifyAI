@@ -318,7 +318,7 @@
         'easy_dedup_rename':     ['remove_duplicates', 'rename_columns', 'finish'],
         'medium_missing_dtype':  ['fill_missing', 'fix_dtype', 'finish'],
         'hard_full_pipeline':    ['remove_duplicates', 'fill_missing', 'fix_dtype', 'remove_outliers', 'validate_schema', 'finish'],
-        'expert_sales_pipeline': ['remove_duplicates', 'fill_missing', 'fix_dtype', 'remove_outliers', 'rename_columns', 'validate_schema', 'finish']
+        'expert_sales_pipeline': ['remove_duplicates', 'rename_columns', 'fill_missing', 'fix_dtype', 'remove_outliers', 'validate_schema', 'finish']
     };
 
     const ACTION_PARAMS = {
@@ -635,6 +635,44 @@
                 '<div style="color:#e74c3c;">Failed to load leaderboard</div>';
         }
     }
+
+    // On load — show actions for default task immediately
+    function showDefaultActions(taskId) {
+        const ops = TASK_OPERATIONS[taskId] || [];
+        const list = document.getElementById('actions-list');
+        list.innerHTML = '';
+
+        const TASK_INFO = {
+            'easy_dedup_rename':     '🟢 EASY — ' + ops.length + ' actions | Max 10 steps',
+            'medium_missing_dtype':  '🟡 MEDIUM — ' + ops.length + ' actions | Max 15 steps',
+            'hard_full_pipeline':    '🔴 HARD — ' + ops.length + ' actions | Max 20 steps',
+            'expert_sales_pipeline': '🟣 EXPERT — ' + ops.length + ' actions | Max 25 steps'
+        };
+
+        const banner = document.createElement('div');
+        banner.style.cssText = 'background:#1e2438;border:1px solid #3d4f7c;border-radius:8px;padding:10px;margin-bottom:10px;font-size:12px;color:#8892b0;';
+        banner.textContent = TASK_INFO[taskId] || '';
+        list.appendChild(banner);
+
+        ops.forEach(op => {
+            const btn = document.createElement('button');
+            btn.className = 'action-btn';
+            btn.id = 'btn-' + op;
+            btn.disabled = true;
+            btn.innerHTML = '<span>' + op + '</span>' +
+                '<span class="action-tag">' + (ACTION_DESC[op] || '') + '</span>';
+            btn.onclick = () => takeAction(op);
+            list.appendChild(btn);
+        });
+
+        const hint = document.createElement('div');
+        hint.style.cssText = 'color:#f39c12;font-size:11px;margin-top:8px;text-align:center;';
+        hint.textContent = '⚠️ Click Reset Environment to enable actions';
+        list.appendChild(hint);
+    }
+
+    // Show actions for default task on page load
+    showDefaultActions(currentTask);
 
     // On load
     fetch(BASE + '/health')
