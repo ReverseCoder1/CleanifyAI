@@ -322,13 +322,15 @@
     };
 
     const ACTION_PARAMS = {
-        'remove_duplicates': {},
-        'rename_columns':    {},
-        'fill_missing':      {strategy: 'mean'},
-        'fix_dtype':         {dtype: 'auto'},
-        'remove_outliers':   {method: 'iqr'},
-        'validate_schema':   {},
-        'finish':            {}
+        'remove_duplicates':   {},
+        'rename_columns':      {},
+        'fill_missing_mean':   {strategy: 'mean'},
+        'fill_missing_mode':   {strategy: 'mode'},
+        'fill_missing_median': {strategy: 'median'},
+        'fix_dtype':           {dtype: 'auto'},
+        'remove_outliers':     {method: 'iqr'},
+        'validate_schema':     {},
+        'finish':              {}
     };
 
     const ACTION_DESC = {
