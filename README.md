@@ -44,6 +44,7 @@ incrementally.
 | easy_dedup_rename | Easy | Remove duplicates + rename columns to snake_case | 10 |
 | medium_missing_dtype | Medium | Fill missing values + fix data types | 15 |
 | hard_full_pipeline | Hard | Full pipeline: duplicates + missing + dtypes + outliers + schema | 20 |
+| expert_sales_pipeline | Expert | Full sales pipeline with case standardization + outlier removal | 25 |
 
 ### Easy Task
 Agent receives an employee dataset with duplicate rows and
@@ -178,7 +179,8 @@ Scores produced by `meta-llama/Llama-3.3-70B-Instruct`:
 | easy_dedup_rename | 1.0000 |
 | medium_missing_dtype | 0.6643 |
 | hard_full_pipeline | 0.8386 |
-| **Average** | **0.8343** |
+| expert_sales_pipeline | 0.9375 |
+| **Average** | **0.8601** |
 
 ---
 
