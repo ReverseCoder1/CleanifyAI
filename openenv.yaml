@@ -20,9 +20,12 @@ tags:
 
 api:
   base_url: https://thorodin103-data-cleaning-openenv.hf.space
-  reset: POST /reset/{task_id}
-  step: POST /step/{task_id}
-  state: GET /state/{task_id}
+  reset: POST /reset
+  step: POST /step
+  state: GET /state
+  reset_task_scoped: POST /reset/{task_id}
+  step_task_scoped: POST /step/{task_id}
+  state_task_scoped: GET /state/{task_id}
   tasks: GET /tasks
   validate: GET /validate
   health: GET /health

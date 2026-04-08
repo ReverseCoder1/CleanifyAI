@@ -8,7 +8,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import os
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Dict, Any
+from typing import Dict, Any, Optional
+from pydantic import BaseModel, Field
 from models import Action, StepResult, Reward
 from environment import DataCleaningEnv
 
@@ -52,6 +53,19 @@ envs: Dict[str, DataCleaningEnv] = {
     for task_id in VALID_TASKS
 }
 
+# Tracks active task for generic OpenEnv endpoints.
+current_task_id = VALID_TASKS[0]
+
+
+class ResetRequest(BaseModel):
+    task_id: str = Field(default=VALID_TASKS[0])
+
+
+class GenericStepRequest(BaseModel):
+    task_id: Optional[str] = Field(default=None)
+    operation: str
+    parameters: Dict[str, Any] = Field(default_factory=dict)
+
 
 def get_env(task_id: str) -> DataCleaningEnv:
     if task_id not in envs:
@@ -81,9 +95,9 @@ def root():
         "status": "running",
         "tasks": VALID_TASKS,
         "endpoints": {
-            "reset":    "POST /reset/{task_id}",
-            "step":     "POST /step/{task_id}",
-            "state":    "GET  /state/{task_id}",
+            "reset":    ["POST /reset", "POST /reset/{task_id}"],
+            "step":     ["POST /step", "POST /step/{task_id}"],
+            "state":    ["GET /state", "GET /state/{task_id}"],
             "tasks":    "GET  /tasks",
             "health":   "GET  /health",
             "docs":     "GET  /docs"
@@ -159,8 +173,10 @@ def list_tasks():
 @app.post("/reset/{task_id}")
 def reset(task_id: str):
     """Reset environment and start fresh episode."""
+    global current_task_id
     env = get_env(task_id)
     try:
+        current_task_id = task_id
         result = env.reset()
         return result.dict()
     except Exception as e:
@@ -168,6 +184,13 @@ def reset(task_id: str):
             status_code=500,
             detail=f"Reset failed: {str(e)}"
         )
+
+
+@app.post("/reset")
+def reset_generic(payload: Optional[ResetRequest] = None):
+    """OpenEnv-compatible reset endpoint."""
+    task_id = payload.task_id if payload else VALID_TASKS[0]
+    return reset(task_id)
 
 
 @app.post("/step/{task_id}")
@@ -189,6 +212,33 @@ def step(task_id: str, action: Action):
         )
 
 
+@app.post("/step")
+def step_generic(payload: Dict[str, Any]):
+    """OpenEnv-compatible step endpoint."""
+    global current_task_id
+
+    task_id = payload.get("task_id") or current_task_id
+    action_payload: Dict[str, Any]
+
+    # Support both body formats:
+    # 1) {"task_id": "...", "operation": "...", "parameters": {...}}
+    # 2) {"task_id": "...", "action": {"operation": "...", "parameters": {...}}}
+    if isinstance(payload.get("action"), dict):
+        action_payload = payload["action"]
+    else:
+        action_payload = payload
+
+    operation = action_payload.get("operation")
+    parameters = action_payload.get("parameters", {})
+
+    if not operation:
+        raise HTTPException(status_code=400, detail="Missing 'operation' in request body")
+
+    current_task_id = task_id
+    action = Action(operation=operation, parameters=parameters)
+    return step(task_id, action)
+
+
 @app.get("/state/{task_id}")
 def state(task_id: str):
     """Get current environment state."""
@@ -200,6 +250,13 @@ def state(task_id: str):
             status_code=500,
             detail=f"State failed: {str(e)}"
         )
+
+
+@app.get("/state")
+def state_generic(task_id: Optional[str] = None):
+    """OpenEnv-compatible state endpoint."""
+    active_task = task_id or current_task_id
+    return state(active_task)
 
 
 @app.get("/validate")
