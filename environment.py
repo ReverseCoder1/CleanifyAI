@@ -41,9 +41,10 @@ class DataCleaningEnv:
             all_meta = json.load(f)
 
         mapping = {
-            "easy_dedup_rename":   "easy",
-            "medium_missing_dtype": "medium",
-            "hard_full_pipeline":   "hard"
+            "easy_dedup_rename":     "easy",
+            "medium_missing_dtype":  "medium",
+            "hard_full_pipeline":    "hard",
+            "expert_sales_pipeline": "expert"
         }
         key = mapping.get(self.task_id, "easy")
         self.task_meta = all_meta[key]
