@@ -279,17 +279,18 @@ class DataCleaningEnv:
             component_scores[k] * w
             for k, w in weights.items()
         ) - penalty
-        # Clamp to strictly (0, 1) excluding endpoints for grader compliance
-        total = max(0.0001, min(0.9999, total))
+        # Clamp ALL scores strictly to (0, 1) — grader rejects 0.0 and 1.0
+        def _sc(v):
+            return round(max(0.0001, min(0.9999, float(v))), 4)
 
         return Reward(
-            total=round(total, 4),
-            duplicate_score=round(dup_score, 4),
-            missing_score=round(missing_score, 4),
-            dtype_score=round(dtype_score, 4),
-            outlier_score=round(outlier_score, 4),
-            schema_score=round(schema_score, 4),
-            penalty=round(penalty, 4)
+            total=_sc(total),
+            duplicate_score=_sc(dup_score),
+            missing_score=_sc(missing_score),
+            dtype_score=_sc(dtype_score),
+            outlier_score=_sc(outlier_score),
+            schema_score=_sc(schema_score),
+            penalty=round(max(0.0, min(0.9999, float(penalty))), 4)
         )
 
     # ─────────────────────────────────────────
