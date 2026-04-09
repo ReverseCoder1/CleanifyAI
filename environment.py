@@ -1,4 +1,3 @@
-
 import json
 import pandas as pd
 import numpy as np
@@ -454,7 +453,7 @@ class DataCleaningEnv:
         self.actions_taken = []  # Reset action history
 
         obs    = self._get_observation("Environment reset. Start cleaning!")
-        reward = Reward(total=0.0)
+        reward = Reward(total=0.0001)
 
         return StepResult(
             observation=obs,
@@ -468,7 +467,7 @@ class DataCleaningEnv:
             obs = self._get_observation("Episode already done. Call reset().")
             return StepResult(
                 observation=obs,
-                reward=Reward(total=0.0),
+                reward=Reward(total=0.0001),
                 done=True,
                 info={"warning": "Episode already done"}
             )
