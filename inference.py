@@ -223,16 +223,17 @@ def run_task(
 
     # [END] line - required format
     success_str = "true" if success else "false"
-    rewards_str = ",".join([f"{r:.2f}" for r in rewards])
+    rewards_str = ",".join([f"{max(0.0001, min(0.9999, r)):.4f}" for r in rewards])
     print(f"[END] success={success_str} steps={step} rewards={rewards_str}")
 
     raw_score = rewards[-1] if rewards else 0.0001
     final_score = max(0.0001, min(0.9999, round(raw_score, 4)))
+    safe_rewards = [max(0.0001, min(0.9999, r)) for r in rewards]
     return {
         "task_id":      task_id,
         "final_score":  final_score,
         "steps":        step,
-        "rewards":      rewards,
+        "rewards":      safe_rewards,
         "actions":      actions_taken,
         "success":      success
     }
@@ -273,7 +274,7 @@ def main():
     output = {
         "model":         MODEL_NAME,
         "tasks":         all_results,
-        "average_score": round(sum(r.get("final_score", 0.0) for r in all_results) / len(all_results), 4)
+        "average_score": max(0.0001, min(0.9999, round(sum(r.get("final_score", 0.0001) for r in all_results) / len(all_results), 4)))
     }
     with open("baseline_results.json", "w") as f:
         json.dump(output, f, indent=2)
