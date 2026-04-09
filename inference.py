@@ -227,7 +227,7 @@ def run_task(
 
     return {
         "task_id":      task_id,
-        "final_score":  round(rewards[-1], 4) if rewards else 0.0,
+        "final_score":  round(rewards[-1], 4) if rewards else 0.0001,
         "steps":        step,
         "rewards":      rewards,
         "actions":      actions_taken,
@@ -261,7 +261,7 @@ def main():
             print(f"[ERROR] Task {task_id} failed: {e}", file=sys.stderr)
             all_results.append({
                 "task_id":     task_id,
-                "final_score": 0.0,
+                "final_score": 0.0001,
                 "success":     False,
                 "error":       str(e)
             })

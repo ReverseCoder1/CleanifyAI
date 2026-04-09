@@ -319,10 +319,10 @@ def submit_score(entry: Dict[str, Any]):
                 status_code=400,
                 detail=f"Missing field: {field}"
             )
-    if not 0.0 <= float(entry["score"]) <= 1.0:
+    if not 0.0 < float(entry["score"]) < 1.0:
         raise HTTPException(
             status_code=400,
-            detail="Score must be between 0.0 and 1.0"
+            detail="Score must be strictly between 0.0 and 1.0 (not 0.0 or 1.0)"
         )
     leaderboard_data.append({
         "model_name": entry["model_name"],
