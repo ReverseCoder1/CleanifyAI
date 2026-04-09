@@ -155,6 +155,9 @@ def run_task(
     success    = False
     last_error = None
 
+    def clamp_score(value: float) -> float:
+        return max(0.0001, min(0.9999, round(value, 4)))
+
     while not done and step < MAX_STEPS:
         step += 1
         last_error = None
@@ -193,7 +196,7 @@ def run_task(
             result  = env.step(action)
             obs     = result.observation.model_dump()
             done    = result.done
-            reward  = result.reward.total
+            reward  = clamp_score(result.reward.total)
             rewards.append(reward)
 
             # Check if operation failed
@@ -203,7 +206,7 @@ def run_task(
 
         except Exception as e:
             last_error = str(e)
-            reward = 0.0
+            reward = 0.0001
             rewards.append(reward)
             done = True
 
@@ -225,9 +228,13 @@ def run_task(
     rewards_str = ",".join([f"{r:.2f}" for r in rewards])
     print(f"[END] success={success_str} steps={step} rewards={rewards_str}")
 
+    final_score = 0.0001
+    if rewards:
+        final_score = max(0.0001, min(0.9999, round(rewards[-1], 4)))
+
     return {
         "task_id":      task_id,
-        "final_score":  round(rewards[-1], 4) if rewards else 0.0001,
+        "final_score":  final_score,
         "steps":        step,
         "rewards":      rewards,
         "actions":      actions_taken,

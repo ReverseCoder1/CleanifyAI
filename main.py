@@ -344,7 +344,7 @@ def get_leaderboard():
                 {
                     "rank": 1,
                     "model_name": "gpt-4o-mini (baseline)",
-                    "easy_score":   1.0000,
+                    "easy_score":   0.9999,
                     "medium_score": 0.6643,
                     "hard_score":   0.8386,
                     "avg_score":    0.8343
