@@ -203,7 +203,7 @@ def run_task(
 
         except Exception as e:
             last_error = str(e)
-            reward = 0.0
+            reward = 0.0001
             rewards.append(reward)
             done = True
 
@@ -211,7 +211,8 @@ def run_task(
         action_str = format_action_str(action.operation, action.parameters)
         error_str = last_error if last_error else "null"
         done_str = "true" if done else "false"
-        print(f"[STEP] step={step} action={action_str} reward={reward:.2f} done={done_str} error={error_str}")
+        safe_reward = max(0.0001, min(0.9999, reward))
+        print(f"[STEP] step={step} action={action_str} reward={safe_reward:.4f} done={done_str} error={error_str}")
 
         if done:
             success = reward > 0.5  # Consider success if final reward > 0.5
