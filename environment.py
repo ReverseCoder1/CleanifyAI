@@ -280,7 +280,8 @@ class DataCleaningEnv:
             component_scores[k] * w
             for k, w in weights.items()
         ) - penalty
-        total = max(0.0, min(1.0, total))
+        # Clamp to strictly (0, 1) excluding endpoints for grader compliance
+        total = max(0.0001, min(0.9999, total))
 
         return Reward(
             total=round(total, 4),
