@@ -31,7 +31,6 @@
 - [Inference Script](#-inference-script)
 - [Data Models](#-data-models)
 - [Datasets](#-datasets)
-- [Troubleshooting](#-troubleshooting)
 - [Baseline Scores](#-baseline-scores)
 - [License](#-license)
 
@@ -632,46 +631,6 @@ Each task has a paired `dirty.csv` and `gold.csv`. The dirty file is loaded at r
 |---|---|
 | Issues | All of the above plus column naming problems |
 | Unique challenge | Operations must be applied in strict optimal order — out-of-order is penalised −0.08 per violation |
-
----
-
-## 🛠️ Troubleshooting
-
-### ❌ Phase 2 Task Validation: "score out of range"
-
-The Scaler platform rejects any score that is exactly `0.0` or `1.0`.
-
-- **`environment.py`** — all `Reward` fields must go through `_sc()` clamping at return
-- **`inference.py`** — `[END]` line must include `score=` field; all rewards via `_clamp()`
-- **`inference.py`** — fallback/exception reward must be `0.01`, not `0.0`
-- **Format** — use `:.2f` (per spec), not `:.4f`
-
----
-
-### ❌ Output Parsing failure
-
-- Ensure `[START]`, `[STEP]`, `[END]` lines use `flush=True`
-- No newlines within a single log line
-- `done` and `success` must be lowercase `true`/`false`
-- `[END]` must include the `score=` field — this is the most common cause of Task Validation failure
-
----
-
-### ❌ Environment not initialized error
-
-- Always call `POST /reset/{task_id}` before `POST /step/{task_id}`
-- Each `task_id` has its own independent environment instance
-
----
-
-### ❌ LLM returns invalid JSON
-
-`parse_action()` handles these cases automatically:
-- Strips markdown code fences (` ```json ` and ` ``` `)
-- Falls back to regex `{...}` extraction
-- Default fallback: `{"operation": "finish", "parameters": {}}`
-
-If the model consistently fails, try increasing `MAX_TOKENS` in `inference.py`.
 
 ---
 
